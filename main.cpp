@@ -2,10 +2,14 @@
 #include "Rec_MatMul.h"
 #include "kaizen.h"
 #include <format>
-#include <windows.h>
 
 using namespace MatMath;
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <cpuid.h>
+#endif
 
 
 std::pair<int, int> process_args(int argc, char* argv[]) {

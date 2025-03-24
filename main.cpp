@@ -2,6 +2,7 @@
 #include "Rec_MatMul.h"  // Assuming this is your custom header
 #include "kaizen.h"     // Assuming this is your custom header
 #include <format>
+#include <cstring>      // Added for strerror on Linux
 
 using namespace MatMath;
 

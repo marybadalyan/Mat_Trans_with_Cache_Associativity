@@ -2,6 +2,8 @@
 #include "Rec_MatMul.h"
 #include "kaizen.h"
 #include <format>
+#include <windows.h>
+
 using namespace MatMath;
 
 
@@ -42,17 +44,35 @@ int main(int argc,char* argv[]) {
     auto [cols,rows] = process_args(argc,argv);
 
     Mat m1(cols,rows);
+    // Get the current thread
+    HANDLE thread = GetCurrentThread();
+
+    // Set affinity to P-core 0, Thread 0 (logical processor 0)
+    DWORD_PTR affinityMask = 1ULL << 0; // Bit 0 = Thread 0 (P-core 0, first thread)
+    DWORD_PTR oldMask = SetThreadAffinityMask(thread, affinityMask);
+
+    if (oldMask == 0) {
+        std::cerr << "Failed to set affinity: " << GetLastError() << std::endl;
+        return 1;   
+    }
+
+    std::cout << "Pinned to P-core 0, Thread 0 (logical processor 0)" << std::endl;
+
+    // Verify the current thread
+    DWORD cpu = GetCurrentProcessorNumber();
+    std::cout << "Running on CPU (thread) " << cpu << " (should be 0)" << std::endl;
+
 
     zen::timer timer;
     timer.start();
     Mat Tm = MatMath::BlockedTPIt(m1);
     timer.stop();
-    double Iterative = timer.duration<zen::timer::usec>().count(); //using the double later 
+    double Iterative = timer.duration<zen::timer::nsec>().count(); //using the double later 
 
     timer.start();
     naiveTP(m1);
     timer.stop();
-    double Naive = timer.duration<zen::timer::usec>().count(); //using the double later 
+    double Naive = timer.duration<zen::timer::nsec>().count(); //using the double later 
 
     zen::print(std::format("| {:<30} | {:>10.2f} |\n", "Iterative Transposition", Iterative));
     zen::print(std::format("| {:<30} | {:>10.2f} |\n", "Naive Transposition", Naive));

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "cache_size.h"
 #include <cmath>
-const int BLOCK_SIZE = sqrt((CacheDetector::getL1CacheSize()*1024)/12);
+const int BLOCK_SIZE =  70; //can use which does not consider cache organization sqrt((CacheDetector::getL1CacheSize()*1024)/12);
 
 
 namespace MatMath {

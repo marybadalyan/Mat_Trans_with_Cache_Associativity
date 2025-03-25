@@ -16,8 +16,8 @@ namespace MatMath {
         Mat temp(m1.cols, m1.rows);
         for(int i = 0; i < m1.rows; i += BLOCK_SIZE.first){
             for(int j = 0; j < m1.cols; j += BLOCK_SIZE.second){
-                for(int ii = i; ii < std::min(i + BLOCK_SIZE.first,m1.rows);++ii){
-                    for(int jj = j; jj < std::min(j + BLOCK_SIZE.second,m1.cols);++jj){
+                for(int ii = i; ii < (std::min)(i + BLOCK_SIZE.first,m1.rows);++ii){
+                    for(int jj = j; jj < (std::min)(j + BLOCK_SIZE.second,m1.cols);++jj){
                         temp.matrix[jj * m1.rows + ii] = m1.matrix[ii* m1.cols + jj];
 
                     }
@@ -73,10 +73,10 @@ namespace MatMath {
         int c2_size = c2_end - c2_start;
 
         // Clamp to matrix bounds
-        r1_end = std::min(r1_end, mat1.rows);
-        c1_end = std::min(c1_end, mat1.cols);
-        r2_end = std::min(r2_end, mat2.rows);
-        c2_end = std::min(c2_end, mat2.cols);
+        r1_end = (std::min)(r1_end, mat1.rows);
+        c1_end = (std::min)(c1_end, mat1.cols);
+        r2_end = (std::min)(r2_end, mat2.rows);
+        c2_end = (std::min)(c2_end, mat2.cols);
 
         // Base case
         if (r1_size <= 64 || c1_size <= 64 || c2_size <= 64 || 
@@ -93,9 +93,9 @@ namespace MatMath {
         int mid3 = c2_start + c2_size / 2;
 
         // Adjust mids to not exceed bounds
-        mid1 = std::min(mid1, mat1.rows);
-        mid2 = std::min(mid2, mat1.cols);
-        mid3 = std::min(mid3, mat2.cols);
+        mid1 = (std::min)(mid1, mat1.rows);
+        mid2 = (std::min)(mid2, mat1.cols);
+        mid3 = (std::min)(mid3, mat2.cols);
 
         // Temporary buffers sized to submatrix dimensions
         int temp_r_size = mid1 - r1_start; // Top-left rows
@@ -145,10 +145,10 @@ namespace MatMath {
         for (int i = 0; i < mat1.rows; i += BLOCK_SIZE) {
             for (int j = 0; j < mat2.cols; j += BLOCK_SIZE) {
                 for (int k = 0; k < mat1.cols; k += BLOCK_SIZE) {
-                    for (int ii = i; ii < std::min(i + BLOCK_SIZE, mat1.rows); ii++) {
-                        for (int jj = j; jj < std::min(j + BLOCK_SIZE, mat2.cols); jj++) {
+                    for (int ii = i; ii < (std::min)(i + BLOCK_SIZE, mat1.rows); ii++) {
+                        for (int jj = j; jj < (std::min)(j + BLOCK_SIZE, mat2.cols); jj++) {
                             int sum = 0;
-                            for (int kk = k; kk < std::min(k + BLOCK_SIZE, mat1.cols); kk++) {
+                            for (int kk = k; kk < (std::min)(k + BLOCK_SIZE, mat1.cols); kk++) {
                                 sum += mat1.matrix[ii * mat1.cols + kk] * mat2.matrix[kk * mat2.cols + jj];
                             }
                             result.matrix[ii * result.cols + jj] += sum;

@@ -1406,7 +1406,7 @@ public:
 
         while (my::size() < target_length) {
             // Append as much of pad_string as will fit
-            my::append(pad_string, 0, std::min(pad_string.size(), target_length - my::size()));
+            my::append(pad_string, 0, (std::min)(pad_string.size(), target_length - my::size()));
         }
 
         return *this;

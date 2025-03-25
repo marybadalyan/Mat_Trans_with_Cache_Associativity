@@ -13,6 +13,7 @@ using namespace MatMath;
 #include <sched.h>
 #include <unistd.h>
 #endif
+const int L1CacheSize = getL1CacheSize()*1024;
 
 // Calculate block size for non-square matrix
 std::pair<int,int> calculateBlockSize(int M, int N) {
@@ -28,7 +29,7 @@ std::pair<int,int> calculateBlockSize(int M, int N) {
     // Cap S to ensure reasonable block size
     while (S > 12) {
         long long workingSetBytes = 2LL * S * S * 4; // Approximate
-        if (workingSetBytes <= 40000) break;
+        if (workingSetBytes <= L1CacheSize) break;
         S -= repetitionPeriod;
     }
 
@@ -37,7 +38,7 @@ std::pair<int,int> calculateBlockSize(int M, int N) {
     // Cap R to ensure reasonable block size
     while (R > 12) {
         long long workingSetBytes = 2LL * R * S * 4;
-        if (workingSetBytes <= 40000) break;
+        if (workingSetBytes <= L1CacheSize) break;
         R -= 12; // Arbitrary step to reduce R
     }
 

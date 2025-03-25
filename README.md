@@ -1,12 +1,11 @@
 
 ## Overview
 
-Cache associativity describes how a CPU cache organizes memory to map main memory addresses to cache locations.
+***Cache associativity describes how a CPU cache organizes memory to map main memory addresses to cache locations.
 Implementing naive matrix transposition  that doesnt consider this details of cahce organization slows down the transposition becous of set eviction.
 Implementing  blocked matrix transposition where the block size consideres full fiting into the cache for row major and column  major iteration for the transposed and not transposed matrix 
 I am using  13th gen Intel Core i7-1355U formaly know as Raptor Lake-S processor can look at details of core construction in the [documentation](https://edc.intel.com/content/www/us/en/design/products/platforms/details/raptor-lake-s/13th-generation-core-processor-specification-update/).
-Focusing on ensuring that the block from matrix A (row-major) and the transposed block in matrix B (column-major) fit in the 48 KB, 12-way set-associative L1 data cache without overwriting each other, while accounting for the cache’s associativity and the access patterns. 
--
+Focusing on ensuring that the block from matrix A (row-major) and the transposed block in matrix B (column-major) fit in the 48 KB, 12-way set-associative L1 data cache without overwriting each other, while accounting for the cache’s associativity and the access patterns.***
 
 ### Step 1: Understand the Cache and Requirements
 - **L1 Data Cache (P-core)**:

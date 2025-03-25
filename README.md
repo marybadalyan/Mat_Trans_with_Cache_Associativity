@@ -53,20 +53,6 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
   - 19,600 bytes ÷ 64 = 306.25 ≈ 307 cache lines per block.
   - Total cache lines = 307 (A) + 307 (B) = 614 cache lines.
   - L1 cache has 768 cache lines, so 614 cache lines fit (79.9% of the cache’s lines).
-
-#### Issue with 70×70: Conflicts
-- **A (Row-Major)**:
-  - 307 cache lines across 64 sets: 307 mod 64 = 51 sets, ~4.8 cache lines per set, within the 12-way limit.
-- **B (Column-Major)**:
-  - For N = 512 :
-    - Stride = 512 x 4 = 2,048 bytes = 32 cache lines.
-    - Set increment = 32 mod 64 = 32.
-    - Sets repeat every 64 ÷ gcd(32, 64) = 64 ÷ 32 = 2 rows.
-    - 70 rows: Even rows (0, 2, ..., 68) = 35 rows → set 0; odd rows (1, 3, ..., 69) = 35 rows → set 32.
-    - 35 cache lines per set, exceeding the 12-way limit, causing 35 - 12 = 23 evictions per set.
-  - Total evictions = 23 × 2 sets = 46 evictions per block.
-- **Problem**: The 46 evictions per block mean A and B’s cache lines are evicting each other, leading to thrashing and overwriting, which doesn’t meet your goal.
-
 ---
 
 ### Step 3: Align Block Size with 12-Way Associativity

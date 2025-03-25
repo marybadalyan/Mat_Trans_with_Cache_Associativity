@@ -1,9 +1,15 @@
 
 ## Overview
+### This is Matrix transposition Implementation in C++ that exploits cache associativity for performance. Demonstrate various measurable or otherwise observable performance characteristics based on exploits of the underlying hardware. Implementation bechmarks naive transposition aproach and blocked transposition considering cache organization.
 
-***Cache associativity describes how a CPU cache organizes memory to map main memory addresses to cache locations. Implementing a naïve matrix transposition without considering cache organization details slows down the process due to set eviction. A blocked matrix transposition, where the block size is chosen to fully fit within the cache, improves performance for both row-major and column-major iterations in the original and transposed matrices.  
+***Cache associativity describes how a CPU cache organizes memory to map main memory addresses to cache locations. Implementing a naive matrix transposition without considering cache organization details slows down the process due to set eviction. A blocked matrix transposition, where the block size is chosen to fully fit within the cache, improves performance for both row-major and column-major iterations in the original and transposed matrices.***
 
-I am using a 13th-gen Intel Core i7-1355U processor, formally known as Raptor Lake-S. By referring to the processor documentation, I am focusing on ensuring that blocks from matrix A (row-major) and the corresponding transposed blocks in matrix B (column-major) fit within the 48 KB, 12-way set-associative L1 data cache. This approach prevents them from overwriting each other while accounting for the cache’s associativity and access patterns.***
+*I am using a 13th-gen Intel Core i7-1355U processor, formally known as Raptor Lake-S. By referring to the processor [documentation]
+(https://edc.intel.com/content/www/us/en/design/products/platforms/details/raptor-lake-s/13th-generation-core-processor-specification-update/),
+i7-1355U processor has 10 cores each divided to a P-core and E-core where P-cores L1 cache has 48KB capacity for data which is 12-way assosiative(find in 13th Generation Intel® Core™ and Intel® Core™ 14th Generation Processors Datasheet, Volume 1 of 2 pg 46).
+I am focusing on ensuring that blocks from matrix A (row-major) and the corresponding transposed blocks in matrix B (column-major) fit within the 48 KB, 12-way set-associative L1 data cache. This approach prevents them from overwriting each other while accounting for the cache’s associativity and access patterns.*
+
+
 
 ### Step 1: Understand the Cache and Requirements
 - **L1 Data Cache (P-core)**:

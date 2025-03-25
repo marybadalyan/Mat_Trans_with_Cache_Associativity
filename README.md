@@ -161,3 +161,70 @@ Running on CPU (thread) 0 (should be 0)
 | Naive Transposition            | 1113800.00 |
 | Speedup Factor                 |       0.66 | // Iterative/Naive
 ```
+
+This snippet from ```main()``` sets thread affinity, ensuring that the executing thread runs on a specific CPU core specific thread and subcore(P and E). 
+The implementation is platform-dependent, handling both Windows and Linux.
+
+### **Windows Implementation (`#ifdef _WIN32`)**
+1. **Get the Current Thread Handle**  
+   ```cpp
+   HANDLE thread = GetCurrentThread();
+   ```
+   - Retrieves a pseudo-handle for the current thread.
+
+2. **Set Thread Affinity to Logical Processor 0**  
+   ```cpp
+   DWORD_PTR affinityMask = 1ULL << 0; // Pin to logical processor 0
+   DWORD_PTR oldMask = SetThreadAffinityMask(thread, affinityMask);
+   ```
+   - `affinityMask = 1ULL << 0` means the thread is pinned to CPU core 0 (bit 0 is set).
+   - `SetThreadAffinityMask(thread, affinityMask)` forces the thread to run only on CPU 0.
+   - Returns the old affinity mask (0 on failure).
+
+3. **Check for Errors**  
+   ```cpp
+   if (oldMask == 0) {
+       std::cerr << "Failed to set affinity: " << GetLastError() << std::endl;
+       return 1;
+   }
+   ```
+   - If `oldMask == 0`, affinity setting failed.
+
+4. **Confirm Execution on Core 0**  
+   ```cpp
+   DWORD cpu = GetCurrentProcessorNumber();
+   std::cout << "Running on CPU (thread) " << cpu << " (should be 0)" << std::endl;
+   ```
+   - Calls `GetCurrentProcessorNumber()` to verify that the thread is indeed running on CPU 0.
+
+### **Linux Implementation (`#else`)**
+1. **Initialize CPU Set**  
+   ```cpp
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(0, &cpuset); // Pin to CPU 0
+   ```
+   - `CPU_ZERO(&cpuset)` initializes an empty CPU set.
+   - `CPU_SET(0, &cpuset)` adds CPU 0 to the set.
+
+2. **Set Thread Affinity**  
+   ```cpp
+   int result = sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+   ```
+   - `sched_setaffinity(0, sizeof(cpu_set_t), &cpuset)` sets the calling thread’s CPU affinity to CPU 0.
+
+3. **Check for Errors**  
+   ```cpp
+   if (result != 0) {
+       std::cerr << "Failed to set affinity: " << strerror(errno) << std::endl;
+       return 1;
+   }
+   ```
+   - If `result != 0`, affinity setting failed.
+
+4. **Confirm Execution on Core 0**  
+   ```cpp
+   int cpu = sched_getcpu();
+   std::cout << "Running on CPU " << cpu << " (should be 0)" << std::endl;
+   ```
+   - Calls `sched_getcpu()` to verify that the thread is actually running on CPU 0.

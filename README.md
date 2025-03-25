@@ -41,7 +41,7 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 - **Fit in L1 Cache**:
   - Aim to use a significant portion of the 48 KB L1 cache, but leave room for other data (e.g., stack variables).
   - Let’s target a working set of ~40 KB to start, then adjust based on associativity:
-    - \( 2 \times B \times B \times 4 \leq 40,000 \) bytes.
+    - 2 x B x B x 4 <= 40,000  bytes.
     - B x B x 8 <= 40,000.
     - B x B x 8 <= 5,000 .
     - B <= sqrt{5,000} ≈ 70.7.

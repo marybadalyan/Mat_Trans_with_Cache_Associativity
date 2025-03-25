@@ -34,21 +34,21 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 
 ### Step 2: Define the Block Size and Working Set
 - **Block Size**:
-  - Use a square block of size \( B \times B \).
+  - Use a square block of size B x B.
   - Each element is an `int` (4 bytes).
-  - Size of a \( B \times B \) block = \( B \times B \times 4 \) bytes.
-  - Working set = block from A + block from B = \( 2 \times B \times B \times 4 \) bytes.
+  - Size of a B x B block = B x B x 4 bytes.
+  - Working set = block from A + block from B = 2 x B x B x 4 bytes.
 - **Fit in L1 Cache**:
   - Aim to use a significant portion of the 48 KB L1 cache, but leave room for other data (e.g., stack variables).
   - Let’s target a working set of ~40 KB to start, then adjust based on associativity:
     - \( 2 \times B \times B \times 4 \leq 40,000 \) bytes.
-    - \( B \times B \times 8 \leq 40,000 \).
-    - \( B \times B \leq 5,000 \).
-    - \( B \leq \sqrt{5,000} \approx 70.7 \).
-  - So, \( B = 70 \):
-    - \( 70 \times 70 = 4,900 \) elements.
-    - \( 4,900 \times 4 = 19,600 \) bytes per block.
-    - Working set = \( 2 \times 19,600 = 39,200 \) bytes (39.2 KB), 81.7% of 48 KB.
+    - B x B x 8 <= 40,000.
+    - B x B x 8 <= 5,000 .
+    - B <= sqrt{5,000} ≈ 70.7.
+  - So, B = 70:
+    - 70 x 70 = 4,900 elements.
+    - 4,900 x 4 = 19,600 bytes per block.
+    - Working set = 2 x 19,600 = 39,200  bytes (39.2 KB), 81.7% of 48 KB.
 - **Cache Lines**:
   - 19,600 bytes ÷ 64 = 306.25 ≈ 307 cache lines per block.
   - Total cache lines = 307 (A) + 307 (B) = 614 cache lines.
@@ -58,8 +58,8 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 - **A (Row-Major)**:
   - 307 cache lines across 64 sets: 307 mod 64 = 51 sets, ~4.8 cache lines per set, within the 12-way limit.
 - **B (Column-Major)**:
-  - For \( N = 512 \):
-    - Stride = \( 512 \times 4 = 2,048 \) bytes = 32 cache lines.
+  - For N = 512 :
+    - Stride = 512 x 4 = 2,048 bytes = 32 cache lines.
     - Set increment = 32 mod 64 = 32.
     - Sets repeat every 64 ÷ gcd(32, 64) = 64 ÷ 32 = 2 rows.
     - 70 rows: Even rows (0, 2, ..., 68) = 35 rows → set 0; odd rows (1, 3, ..., 69) = 35 rows → set 32.
@@ -74,34 +74,34 @@ To minimize conflicts and prevent overwriting, we need a block size \( B \times 
 
 #### B’s Column-Major Access Pattern
 - **Stride**:
-  - Stride between consecutive writes to B = \( N \times 4 \) bytes.
-  - For \( N = 512 \):
-    - Stride = \( 512 \times 4 = 2,048 \) bytes.
-    - Cache lines = \( 2,048 \div 64 = 32 \).
+  - Stride between consecutive writes to B = N x 4 bytes.
+  - For N = 512 :
+    - Stride = 512 x 4 = 2,048 bytes.
+    - Cache lines = 2,048 \ 64 = 32.
     - Set increment = 32 mod 64 = 32.
 - **Set Repetition**:
   - Sets repeat every 64 ÷ gcd(32, 64) = 64 ÷ 32 = 2 rows.
   - So, rows 0, 2, 4, ... map to one set (e.g., set 0), and rows 1, 3, 5, ... map to another set (e.g., set 32).
 - **Rows per Set**:
-  - If we access \( R \) rows in B:
-    - Number of rows per set = \( R \div 2 \).
-    - Number of cache lines per set = \( R \div 2 \) (since each row is a new cache line due to the large stride).
+  - If we access R rows in B:
+    - Number of rows per set = R \ 2.
+    - Number of cache lines per set = R \ 2 (since each row is a new cache line due to the large stride).
   - We want the number of cache lines per set to be ≤ 12 to avoid evictions:
-    - \( R \div 2 \leq 12 \).
-    - \( R \leq 24 \).
-- **Choose \( R = 24 \)**:
-  - 24 rows → \( 24 \div 2 = 12 \) cache lines per set, exactly matching the 12-way associativity, causing 0 evictions within B’s access pattern.
+    - R \ 2 <= 12.
+    - R <= 24.
+- **Choose R = 24**:
+  - 24 rows → 24 \ 2 = 12  cache lines per set, exactly matching the 12-way associativity, causing 0 evictions within B’s access pattern.
 
 #### Block Size: 24×24
 - **Working Set**:
-  - 24×24 block = \( 24 \times 24 = 576 \) `int` elements.
-  - \( 576 \times 4 = 2,304 \) bytes per block.
-  - Total working set = \( 2,304 + 2,304 = 4,608 \) bytes (4.608 KB), 9.6% of 48 KB.
+  - 24×24 block = 24 * 24 = 576 `int` elements.
+  - 576 * 4 = 2,304  bytes per block.
+  - Total working set = 2,304 + 2,304 = 4,608  bytes (4.608 KB), 9.6% of 48 KB.
 - **Cache Lines**:
   - 2,304 bytes ÷ 64 = 36 cache lines per block.
   - Total cache lines = 36 (A) + 36 (B) = 72 cache lines.
 - **A (Row-Major)**:
-  - 24 rows, each row = 24 `int` = \( 24 \times 4 = 96 \) bytes = 1.5 cache lines ≈ 2 cache lines.
+  - 24 rows, each row = 24 `int` = 24 * 4 = 96  bytes = 1.5 cache lines ≈ 2 cache lines.
   - Total = 36 cache lines (since elements share cache lines).
   - Set mapping: Cache lines 0 to 35 → sets 0 to 35, ~1 cache line per set.
 - **B (Column-Major)**:

@@ -12,12 +12,12 @@ namespace MatMath {
         Mat(int r, int c) : rows(r), cols(c), matrix(r * c, 0) {}
     };
 
-    Mat BlockedTPIt(Mat& m1,int BLOCK_SIZE){
+    Mat BlockedTPIt(Mat& m1,std::pair<int,int> BLOCK_SIZE){
         Mat temp(m1.cols, m1.rows);
-        for(int i = 0; i < m1.rows; i += BLOCK_SIZE){
-            for(int j = 0; j < m1.cols; j += BLOCK_SIZE){
-                for(int ii = i; ii < std::min(i + BLOCK_SIZE,m1.rows);++ii){
-                    for(int jj = j; jj < std::min(j + BLOCK_SIZE,m1.cols);++jj){
+        for(int i = 0; i < m1.rows; i += BLOCK_SIZE.first){
+            for(int j = 0; j < m1.cols; j += BLOCK_SIZE.second){
+                for(int ii = i; ii < std::min(i + BLOCK_SIZE.first,m1.rows);++ii){
+                    for(int jj = j; jj < std::min(j + BLOCK_SIZE.second,m1.cols);++jj){
                         temp.matrix[jj * m1.rows + ii] = m1.matrix[ii* m1.cols + jj];
 
                     }

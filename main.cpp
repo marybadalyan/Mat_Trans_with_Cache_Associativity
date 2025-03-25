@@ -14,22 +14,34 @@ using namespace MatMath;
 #include <unistd.h>
 #endif
 
-int calculateBlockSize(int N) {
-    int cacheLinesPerStride = (N * 4) / 64; // N / 16
+// Calculate block size for non-square matrix
+std::pair<int,int> calculateBlockSize(int M, int N) {
+    // Calculate S based on M (B's stride)
+    int cacheLinesPerStride = (M * 4) / 64; // M / 16
     int setIncrement = cacheLinesPerStride % 64;
     int gcdValue = std::gcd(setIncrement, 64);
     int repetitionPeriod = 64 / gcdValue;
-    int maxRowsPerSet = 12; // 12-way associativity
-    int maxR = maxRowsPerSet * repetitionPeriod;
-    // Ensure R is reasonable and fits in cache
-    int R = maxR;
-    // Cap R to ensure working set fits in L1 cache (e.g., 40 KB)
-    while (R > 12) { // Minimum block size for efficiency
-        long long workingSetBytes = 2LL * R * R * 4;
-        if (workingSetBytes <= 40000) break; // 40 KB
-        R -= repetitionPeriod; // Reduce by the repetition period
+    int maxColsPerSet = 12; // 12-way associativity
+    int maxS = maxColsPerSet * repetitionPeriod;
+    int S = maxS;
+
+    // Cap S to ensure reasonable block size
+    while (S > 12) {
+        long long workingSetBytes = 2LL * S * S * 4; // Approximate
+        if (workingSetBytes <= 40000) break;
+        S -= repetitionPeriod;
     }
-    return R;
+
+    // Calculate R based on working set constraint
+    int R = 5000 / S; // R * S <= 5000
+    // Cap R to ensure reasonable block size
+    while (R > 12) {
+        long long workingSetBytes = 2LL * R * S * 4;
+        if (workingSetBytes <= 40000) break;
+        R -= 12; // Arbitrary step to reduce R
+    }
+
+    return { R, S };
 }
 
 
@@ -68,7 +80,7 @@ Mat naiveTP(Mat& m1) {
 int main(int argc, char* argv[]) {
     auto [cols, rows] = process_args(argc, argv);
     Mat m1(cols, rows);
-    const int BLOCK_SIZE =  calculateBlockSize(rows*cols);
+    const std::pair<int,int> BLOCK_SIZE =  calculateBlockSize(cols,rows);
 #ifdef _WIN32
     // Windows-specific thread affinity
     HANDLE thread = GetCurrentThread();

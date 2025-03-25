@@ -25,7 +25,7 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 - **Matrix Transpose**:
   - Operation: `B[j][i] = A[i][j]`.
   - **A (Row-Major)**: Sequential access, good spatial locality.
-  - **B (Column-Major)**: Non-sequential access, poor spatial locality (stride = \( N \times 4 \) bytes).
+  - **B (Column-Major)**: Non-sequential access, poor spatial locality (stride = N x 4 bytes).
 - **Goals**:
   1. **Fit Both Blocks in L1 Cache**: The block from A and the transposed block in B should fit in the 48 KB L1 cache.
   2. **Minimize Overwriting**: Ensure A and B’s cache lines don’t evict each other due to excessive conflicts in the 12-way set-associative cache.
@@ -70,7 +70,7 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 ---
 
 ### Step 3: Align Block Size with 12-Way Associativity
-To minimize conflicts and prevent overwriting, we need a block size \( B \times B \) where the number of rows \( B \) in B’s column-major access results in a number of cache lines per set that fits within the 12-way associativity limit.
+To minimize conflicts and prevent overwriting, we need a block size B x B where the number of rows B in B’s column-major access results in a number of cache lines per set that fits within the 12-way associativity limit.
 
 #### B’s Column-Major Access Pattern
 - **Stride**:

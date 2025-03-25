@@ -159,5 +159,5 @@ Pinned to P-core 0, Thread 0 (logical processor 0)
 Running on CPU (thread) 0 (should be 0)
 | Iterative Transposition        |  740500.00 |
 | Naive Transposition            | 1113800.00 |
-| Speedup Factor                 |       0.66 | / (Iterative/Naive) /
+| Speedup Factor                 |       0.66 | // Iterative/Naive
 ```

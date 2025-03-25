@@ -150,7 +150,7 @@ To minimize conflicts and prevent overwriting, we need a block size \( B \times 
 Once compiled, run the program to start the memory stress test:
 
 ```bash
-./Cache_Oblivious_vs_Aware_MatMul --rows [num] --cols [num]  // num as in int 
+./Mat_Trans_with_Cache_Associativity --rows [num] --cols [num]  // num as in int 
 ```
 ### Sample output:
 ```
@@ -159,5 +159,5 @@ Pinned to P-core 0, Thread 0 (logical processor 0)
 Running on CPU (thread) 0 (should be 0)
 | Iterative Transposition        |  740500.00 |
 | Naive Transposition            | 1113800.00 |
-| Speedup Factor                 |       0.66 |
+| Speedup Factor                 |       0.66 | / (Iterative/Naive) /
 ```

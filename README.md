@@ -57,11 +57,39 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
 
 ### Step 3: Align Block Size with 12-Way Associativity
 To minimize conflicts and prevent overwriting, we need a block size B x B where the number of rows B in B’s column-major access results in a number of cache lines per set that fits within the 12-way associativity limit.
+Below is a concise summary of the corrected formula for determining the block size in your matrix transposition implementation, optimized for the 12-way set-associative L1 cache on your Intel Core i7-1355U. This summary is formatted for inclusion in your README, focusing on clarity and brevity while capturing the key details for both square and non-square matrices.
 
+---
+
+I understand that the mathematical symbols for division (\(/\)) and multiplication (\(*\)) in the previous summary are not rendering correctly for copying into your README, likely due to formatting issues in your environment. I’ll reformat the summary using `/` for division and `x` for multiplication, ensuring it’s easy to copy and paste while maintaining clarity. Here’s the revised summary for your README:
+
+---
+
+### Block Size Formula for Cache-Aware Matrix Transposition
+
+- **Square Matrix (M = N)**:
+  - Use a square block R x R.
+  - R <= 768 / gcd((N / 16) mod 64, 64), where:
+    - N / 16: Number of cache lines per stride in B (stride = N x 4 bytes).
+    - (N / 16) mod 64: Set increment for B's column-major access.
+    - gcd((N / 16) mod 64, 64): Determines the set repetition period.
+  - Cap R to fit in the L1 cache: R x R <= 5000 (working set <= 40 KB).
+  - Example: For N = 512, R = 24, so block size is 24 x 24.
+
+- **Non-Square Matrix (M != N)**:
+  - Use a rectangular block R x S.
+  - S <= 768 / gcd((M / 16) mod 64, 64), where:
+    - M / 16: Number of cache lines per stride in B (stride = M x 4 bytes).
+    - Ensures B's column-major access has <= 12 cache lines per set.
+  - R <= 5000 / S, adjusted to fit the working set (2 x R x S x 4 <= 40000 bytes) and minimize conflicts for A's row-major access (stride = N x 4).
+  - Example: For M = 512, N = 1024, S = 24, R = 96, so block size is 96 x 24.
+
+
+This summary provides a clear and concise explanation of the block size formula for your README, suitable for readers who want to understand the cache-aware optimization without diving into the full implementation details. If you need further adjustments or additional sections for your README, let me know!
 #### B’s Column-Major Access Pattern
 - **Stride**:
   - Stride between consecutive writes to B = N x 4 bytes.
-  - For N = 512 :
+  - For N = 512 : //example size use 
     - Stride = 512 x 4 = 2,048 bytes.
     - Cache lines = 2,048 \ 64 = 32.
     - Set increment = 32 mod 64 = 32.

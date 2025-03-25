@@ -3,7 +3,7 @@
 #include "kaizen.h"     // Assuming this is your custom header
 #include <format>
 #include <cstring>      // Added for strerror on Linux
-
+#include <numeric> //for gcd
 using namespace MatMath;
 
 #ifdef _WIN32
@@ -13,6 +13,27 @@ using namespace MatMath;
 #include <sched.h>
 #include <unistd.h>
 #endif
+
+int calculateBlockSize(int N) {
+    int cacheLinesPerStride = (N * 4) / 64; // N / 16
+    int setIncrement = cacheLinesPerStride % 64;
+    int gcdValue = std::gcd(setIncrement, 64);
+    int repetitionPeriod = 64 / gcdValue;
+    int maxRowsPerSet = 12; // 12-way associativity
+    int maxR = maxRowsPerSet * repetitionPeriod;
+    // Ensure R is reasonable and fits in cache
+    int R = maxR;
+    // Cap R to ensure working set fits in L1 cache (e.g., 40 KB)
+    while (R > 12) { // Minimum block size for efficiency
+        long long workingSetBytes = 2LL * R * R * 4;
+        if (workingSetBytes <= 40000) break; // 40 KB
+        R -= repetitionPeriod; // Reduce by the repetition period
+    }
+    return R;
+}
+
+
+//can use which does not consider cache organization sqrt((CacheDetector::getL1CacheSize()*1024)/12);
 
 std::pair<int, int> process_args(int argc, char* argv[]) {
     zen::cmd_args args(argv, argc);
@@ -47,7 +68,7 @@ Mat naiveTP(Mat& m1) {
 int main(int argc, char* argv[]) {
     auto [cols, rows] = process_args(argc, argv);
     Mat m1(cols, rows);
-
+    const int BLOCK_SIZE =  calculateBlockSize(rows*cols);
 #ifdef _WIN32
     // Windows-specific thread affinity
     HANDLE thread = GetCurrentThread();
@@ -80,7 +101,7 @@ int main(int argc, char* argv[]) {
 
     zen::timer timer;
     timer.start();
-    Mat Tm = MatMath::BlockedTPIt(m1);
+    Mat Tm = MatMath::BlockedTPIt(m1,BLOCK_SIZE);
     timer.stop();
     double Iterative = timer.duration<zen::timer::nsec>().count();
 

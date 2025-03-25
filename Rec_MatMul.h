@@ -2,7 +2,6 @@
 #include <algorithm>
 #include "cache_size.h"
 #include <cmath>
-const int BLOCK_SIZE =  24; //can use which does not consider cache organization sqrt((CacheDetector::getL1CacheSize()*1024)/12);
 
 
 namespace MatMath {
@@ -13,7 +12,7 @@ namespace MatMath {
         Mat(int r, int c) : rows(r), cols(c), matrix(r * c, 0) {}
     };
 
-    Mat BlockedTPIt(Mat& m1){
+    Mat BlockedTPIt(Mat& m1,int BLOCK_SIZE){
         Mat temp(m1.cols, m1.rows);
         for(int i = 0; i < m1.rows; i += BLOCK_SIZE){
             for(int j = 0; j < m1.cols; j += BLOCK_SIZE){
@@ -140,7 +139,7 @@ namespace MatMath {
         return result;
     }
 
-    Mat BlockedMul(const Mat& mat1, const Mat& mat2){
+    Mat BlockedMul(const Mat& mat1, const Mat& mat2,int BLOCK_SIZE){
         Mat result(mat1.rows, mat2.cols);
         
         for (int i = 0; i < mat1.rows; i += BLOCK_SIZE) {

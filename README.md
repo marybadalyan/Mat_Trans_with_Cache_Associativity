@@ -1,6 +1,6 @@
 
 ## Overview
-### This is Matrix transposition Implementation in C++ that exploits cache associativity for performance. Demonstrate various measurable or otherwise observable performance characteristics based on exploits of the underlying hardware. Implementation bechmarks naive transposition aproach and blocked transposition considering cache organization.
+### This is Matrix transposition Implementation in C++ that exploits cache associativity for performance.Observes various  performance characteristics based on exploits of the underlying hardware. Implementation benchmarks naive transposition and blocked transposition considering cache organization system.
 
 ***Cache associativity describes how a CPU cache organizes memory to map main memory addresses to cache locations. Implementing a naive matrix transposition without considering cache organization details slows down the process due to set eviction. A blocked matrix transposition, where the block size is chosen to fully fit within the cache, improves performance for both row-major and column-major iterations in the original and transposed matrices.***
 

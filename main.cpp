@@ -13,36 +13,39 @@ using namespace MatMath;
 #include <sched.h>
 #include <unistd.h>
 #endif
-const int L1CacheSize = getL1CacheSize()*1024;
+const int cacheSize = getL1CacheSize()*1024;
 
-// Calculate block size for non-square matrix
-std::pair<int,int> calculateBlockSize(int M, int N) {
-    // Calculate S based on M (B's stride)
-    int cacheLinesPerStride = (M * 4) / 64; // M / 16
-    int setIncrement = cacheLinesPerStride % 64;
-    int gcdValue = std::gcd(setIncrement, 64);
-    int repetitionPeriod = 64 / gcdValue;
-    int maxColsPerSet = 12; // 12-way associativity
-    int maxS = maxColsPerSet * repetitionPeriod;
-    int S = maxS;
+std::pair<int, int> calculateBlockSize(int M, int N) {
+    const int lineSize = 64;
+    const int associativity = 12;
+    const int numSets = cacheSize / (lineSize * associativity); // 64
 
-    // Cap S to ensure reasonable block size
-    while (S > 12) {
-        long long workingSetBytes = 2LL * S * S * 4; // Approximate
-        if (workingSetBytes <= L1CacheSize) break;
-        S -= repetitionPeriod;
+    // Source block stride (M columns)
+    int linesPerRow = (M * 4 + lineSize - 1) / lineSize; // ceil(M / 16)
+    int setIncrement = linesPerRow % numSets;
+    int gcdValue = std::gcd(setIncrement, numSets);
+    int repetitionPeriod = numSets / gcdValue;
+    int maxS = associativity * repetitionPeriod;
+
+    // Cap S by cache and matrix size
+    int S = (std::min)(maxS, M); // Don’t exceed matrix width
+    while (S > 1) {
+        int maxLinesS = (S * S * 4 + lineSize - 1) / lineSize; // Source block lines
+        if (maxLinesS / (std::min)(numSets, linesPerRow) <= associativity) break;
+        S--;
     }
 
-    // Calculate R based on working set constraint
-    int R = 5000 / S; // R * S <= 5000
-    // Cap R to ensure reasonable block size
-    while (R > 12) {
-        long long workingSetBytes = 2LL * R * S * 4;
-        if (workingSetBytes <= L1CacheSize) break;
-        R -= 12; // Arbitrary step to reduce R
+    // Cap R by cache and N, considering destination stride
+    int R = (std::min)(N, cacheSize / (S * 4)); // Initial max based on cache
+    while (R > 1) {
+        int workingSetBytes = 2LL * R * S * 4;
+        int maxLinesR = R * ((S * 4 + lineSize - 1) / lineSize); // Dest block lines
+        int setsTouched = (std::min)(numSets, linesPerRow);
+        if (workingSetBytes <= cacheSize && maxLinesR / setsTouched <= associativity) break;
+        R--;
     }
 
-    return { R, S };
+    return {R, S};
 }
 
 

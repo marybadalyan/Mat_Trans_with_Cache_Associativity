@@ -3,7 +3,10 @@
 #include "kaizen.h"     // Assuming this is your custom header
 #include <format>
 #include <cstring>      // Added for strerror on Linux
-#include <numeric> //for gcd
+#include <utility>
+#include <cmath>
+#include <algorithm>
+
 using namespace MatMath;
 
 #ifdef _WIN32
@@ -13,43 +16,51 @@ using namespace MatMath;
 #include <sched.h>
 #include <unistd.h>
 #endif
-const int cacheSize = getL1CacheSize()*1024;
+const long long cache_size = getL1CacheSize()*1024;
 
-std::pair<int, int> calculateBlockSize(int M, int N) {
-    const int lineSize = 64;
+
+// Function to calculate optimal block sizes B_N and B_M for matrix transposition
+// Inputs: N (rows), M (cols), s (element size in bytes), cache_fraction (0.0 to 1.0)
+// Returns: pair of B_N (row block size) and B_M (column block size)
+std::pair<int, int> calculateBlockSize(int N, int M, int s = 4, double cache_fraction = 1.0) {
+    // Cache parameters for 48MB, 12-way associative cache with 64-byte lines
+    
+    const int line_size = 64;
     const int associativity = 12;
-    const int numSets = cacheSize / (lineSize * associativity); // 64
+    const int num_sets = cache_size / line_size / associativity; // 65,536 sets
 
-    // Source block stride (M columns)
-    int linesPerRow = (M * 4 + lineSize - 1) / lineSize; // ceil(M / 16)
-    int setIncrement = linesPerRow % numSets;
-    int gcdValue = std::gcd(setIncrement, numSets);
-    int repetitionPeriod = numSets / gcdValue;
-    int maxS = associativity * repetitionPeriod;
+    // Maximum bytes and elements for both blocks (source + transposed)
+    long long max_bytes = static_cast<long long>(cache_size * cache_fraction);
+    long long max_elements = max_bytes / (2 * s);
 
-    // Cap S by cache and matrix size
-    int S = (std::min)(maxS, M); // Don’t exceed matrix width
-    while (S > 1) {
-        int maxLinesS = (S * S * 4 + lineSize - 1) / lineSize; // Source block lines
-        if (maxLinesS / (std::min)(numSets, linesPerRow) <= associativity) break;
-        S--;
+    // Ideal block sizes based on matrix aspect ratio (N/M)
+    double ratio = static_cast<double>(N) / M;
+    int bn_ideal = static_cast<int>(std::sqrt(max_elements * ratio));
+    int bm_ideal = static_cast<int>(std::sqrt(max_elements / ratio));
+
+    // Helper function to find the largest divisor of n <= limit
+    auto find_divisor = [](int n, int limit) {
+        int best = 1;
+        for (int i = 1; i <= n && i <= limit; i++) {
+            if (n % i == 0) best = i;
+        }
+        return best;
+    };
+
+    // Snap B_N and B_M to divisors of N and M, respectively
+    int B_N = find_divisor(N, bn_ideal);
+    int B_M = find_divisor(M, (std::min)(static_cast<long long>(bm_ideal), max_elements / B_N));
+
+    // Scale down if the product exceeds the cache limit
+    while (static_cast<long long>(B_N) * B_M > max_elements) {
+        if (B_N > B_M) B_N = find_divisor(N, B_N / 2);
+        else B_M = find_divisor(M, B_M / 2);
     }
 
-    // Cap R by cache and N, considering destination stride
-    int R = (std::min)(N, cacheSize / (S * 4)); // Initial max based on cache
-    while (R > 1) {
-        int workingSetBytes = 2LL * R * S * 4;
-        int maxLinesR = R * ((S * 4 + lineSize - 1) / lineSize); // Dest block lines
-        int setsTouched = (std::min)(numSets, linesPerRow);
-        if (workingSetBytes <= cacheSize && maxLinesR / setsTouched <= associativity) break;
-        R--;
-    }
-
-    return {R, S};
+    // Return the block sizes as a pair
+    return {B_N, B_M};
 }
 
-
-//can use which does not consider cache organization sqrt((CacheDetector::getL1CacheSize()*1024)/12);
 
 std::pair<int, int> process_args(int argc, char* argv[]) {
     zen::cmd_args args(argv, argc);

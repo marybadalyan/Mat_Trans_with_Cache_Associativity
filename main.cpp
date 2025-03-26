@@ -16,7 +16,9 @@ using namespace MatMath;
 #include <sched.h>
 #include <unistd.h>
 #endif
-const long long cache_size = getL1CacheSize()*1024;
+
+const int cache_size = getL1CacheSize();
+
 
 
 // Function to calculate optimal block sizes B_N and B_M for matrix transposition
@@ -26,7 +28,7 @@ std::pair<int, int> calculateBlockSize(int N, int M, int s = 4, double cache_fra
     // Cache parameters for 48MB, 12-way associative cache with 64-byte lines
     
     const int line_size = 64;
-    const int associativity = 12;
+    const int associativity = get_L1_cache_associativity(0);
     const int num_sets = cache_size / line_size / associativity; // 65,536 sets
 
     // Maximum bytes and elements for both blocks (source + transposed)

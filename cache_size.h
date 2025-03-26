@@ -9,6 +9,43 @@
     #include <string>
 #endif
 
+
+int get_L1_cache_associativity(int core_id) {
+    int associativity = -1;
+
+#ifdef _WIN32
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer[128];
+    DWORD len = sizeof(buffer);
+
+    if (!GetLogicalProcessorInformationEx(RelationCache, buffer, &len)) {
+        std::cerr << "Failed to get cache info.\n";
+        return -1;
+    }
+
+    for (BYTE *ptr = reinterpret_cast<BYTE *>(buffer); ptr < reinterpret_cast<BYTE *>(buffer) + len;) {
+        SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *>(ptr);
+        if (info->Relationship == RelationCache && info->Cache.Level == 1) {
+            return info->Cache.Associativity;
+        }
+        ptr += info->Size;
+    }
+
+    return -1;
+#else
+    std::string assoc_path = "/sys/devices/system/cpu/cpu" + std::to_string(core_id) + "/cache/index0/ways_of_associativity";
+    std::ifstream assoc_file(assoc_path);
+
+    if (assoc_file.is_open()) {
+        assoc_file >> associativity;
+        assoc_file.close();
+    } else {
+        std::cerr << "Failed to read cache associativity.\n";
+    }
+
+    return associativity;
+#endif
+}
+
 size_t getL1CacheSize() {
 #ifdef _WIN32
     DWORD bufferSize = 0;

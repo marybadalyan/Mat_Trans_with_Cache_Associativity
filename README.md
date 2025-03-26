@@ -32,104 +32,66 @@ I am focusing on ensuring that blocks from matrix A (row-major) and the correspo
   3. **Account for 12-Way Associativity**: Keep the number of cache lines per set within the 12-way limit.
   4. **Consider Row-Major and Column-Major Access**: Balance the access patterns to reduce conflicts.
 
-### Step 2: Define the Block Size and Working Set
-- **Block Size**:
-  - Use a square block of size B x B.
-  - Each element is an `int` (4 bytes).
-  - Size of a B x B block = B x B x 4 bytes.
-  - Working set = block from A + block from B = 2 x B x B x 4 bytes.
-- **Fit in L1 Cache**:
-  - Aim to use a significant portion of the 48 KB L1 cache, but leave room for other data (e.g., stack variables).
-  - Let’s target a working set of ~40 KB to start, then adjust based on associativity:
-    - 2 x B x B x 4 <= 40,000  bytes.
-    - B x B x 8 <= 40,000.
-    - B x B x 8 <= 5,000 .
-    - B <= sqrt{5,000} ≈ 70.7.
-  - So, B = 70:
-    - 70 x 70 = 4,900 elements.
-    - 4,900 x 4 = 19,600 bytes per block.
-    - Working set = 2 x 19,600 = 39,200  bytes (39.2 KB), 81.7% of 48 KB.
-- **Cache Lines**:
-  - 19,600 bytes ÷ 64 = 306.25 ≈ 307 cache lines per block.
-  - Total cache lines = 307 (A) + 307 (B) = 614 cache lines.
-  - L1 cache has 768 cache lines, so 614 cache lines fit (79.9% of the cache’s lines).
----
 
 ### Step 3: Align Block Size with 12-Way Associativity
 To minimize conflicts and prevent overwriting, we need a block size B x B where the number of rows B in B’s column-major access results in a number of cache lines per set that fits within the 12-way associativity limit.
-Below is a concise summary of the corrected formula for determining the block size in your matrix transposition implementation, optimized for the 12-way set-associative L1 cache on your Intel Core i7-1355U. This summary is formatted for inclusion in your README, focusing on clarity and brevity while capturing the key details for both square and non-square matrices.
 
----
-
-I understand that the mathematical symbols for division (\(/\)) and multiplication (\(*\)) in the previous summary are not rendering correctly for copying into your README, likely due to formatting issues in your environment. I’ll reformat the summary using `/` for division and `x` for multiplication, ensuring it’s easy to copy and paste while maintaining clarity. Here’s the revised summary for your README:
-
----
 
 ### Block Size Formula for Cache-Aware Matrix Transposition
 
-- **Square Matrix (M = N)**:
-  - Use a square block R x R.
-  - R <= 768 / gcd((N / 16) mod 64, 64), where:
-    - N / 16: Number of cache lines per stride in B (stride = N x 4 bytes).
-    - (N / 16) mod 64: Set increment for B's column-major access.
-    - gcd((N / 16) mod 64, 64): Determines the set repetition period.
-  - Cap R to fit in the L1 cache: R x R <= 5000 (working set <= 40 KB).
-  - Example: For N = 512, R = 24, so block size is 24 x 24.
+This project provides a C++ function to calculate optimal block sizes (B_N, B_M) 
+for transposing an N x M matrix, leveraging a 48MB, 12-way associative cache 
+with 64-byte lines. The goal is to minimize cache evictions and maximize 
+performance by fitting source and destination blocks into the cache.
 
-- **Non-Square Matrix (M != N)**:
-  - Use a rectangular block R x S.
-  - S <= 768 / gcd((M / 16) mod 64, 64), where:
-    - M / 16: Number of cache lines per stride in B (stride = M x 4 bytes).
-    - Ensures B's column-major access has <= 12 cache lines per set.
-  - R <= 5000 / S, adjusted to fit the working set (2 x R x S x 4 <= 40000 bytes) and minimize conflicts for A's row-major access (stride = N x 4).
-  - Example: For M = 512, N = 1024, S = 24, R = 96, so block size is 96 x 24.
+// Cache Details
+- Cache size: 48MB = 50,331,648 bytes
+- Line size: 64 bytes → 786,432 lines
+- Associativity: 12-way → 65,536 sets
+- Each set holds 12 lines; total capacity = 786,432 lines
 
+// Block Size Calculation
+For an N x M matrix with element size s (bytes):
+- Source block: B_N x B_M, size = B_N * B_M * s bytes
+- Destination block: B_M x B_N, size = B_N * B_M * s bytes
+- Total size: 2 * B_N * B_M * s ≤ 50,331,648 * cache_fraction
+- Lines: 2 * B_N * B_M * s / 64
+- Goal: Keep lines per set ≤ 12 to avoid evictions
 
-This summary provides a clear and concise explanation of the block size formula for your README, suitable for readers who want to understand the cache-aware optimization without diving into the full implementation details. If you need further adjustments or additional sections for your README, let me know!
-#### B’s Column-Major Access Pattern
-- **Stride**:
-  - Stride between consecutive writes to B = N x 4 bytes.
-  - For N = 512 : //example size use 
-    - Stride = 512 x 4 = 2,048 bytes.
-    - Cache lines = 2,048 \ 64 = 32.
-    - Set increment = 32 mod 64 = 32.
-- **Set Repetition**:
-  - Sets repeat every 64 ÷ gcd(32, 64) = 64 ÷ 32 = 2 rows.
-  - So, rows 0, 2, 4, ... map to one set (e.g., set 0), and rows 1, 3, 5, ... map to another set (e.g., set 32).
-- **Rows per Set**:
-  - If we access R rows in B:
-    - Number of rows per set = R \ 2.
-    - Number of cache lines per set = R \ 2 (since each row is a new cache line due to the large stride).
-  - We want the number of cache lines per set to be ≤ 12 to avoid evictions:
-    - R \ 2 <= 12.
-    - R <= 24.
-- **Choose R = 24**:
-  - 24 rows → 24 \ 2 = 12  cache lines per set, exactly matching the 12-way associativity, causing 0 evictions within B’s access pattern.
+// Formula
+Max elements: B_N * B_M ≤ 25,165,824 / s
+- Ideal: B_N = sqrt((25,165,824 / s) * (N / M))
+        B_M = sqrt((25,165,824 / s) * (M / N))
+- Adjust to fit cache and tile N, M cleanly
 
-#### Block Size: 24×24
-- **Working Set**:
-  - 24×24 block = 24 * 24 = 576 `int` elements.
-  - 576 * 4 = 2,304  bytes per block.
-  - Total working set = 2,304 + 2,304 = 4,608  bytes (4.608 KB), 9.6% of 48 KB.
-- **Cache Lines**:
-  - 2,304 bytes ÷ 64 = 36 cache lines per block.
-  - Total cache lines = 36 (A) + 36 (B) = 72 cache lines.
-- **A (Row-Major)**:
-  - 24 rows, each row = 24 `int` = 24 * 4 = 96  bytes = 1.5 cache lines ≈ 2 cache lines.
-  - Total = 36 cache lines (since elements share cache lines).
-  - Set mapping: Cache lines 0 to 35 → sets 0 to 35, ~1 cache line per set.
-- **B (Column-Major)**:
-  - 24 rows → 12 cache lines per set (as calculated), using 2 sets (e.g., sets 0 and 32).
-- **Combined Conflicts**:
-  - Set 0:
-    - A: 1 cache line.
-    - B: 12 cache lines.
-    - Total = 1 + 12 = 13 cache lines, causing 13 - 12 = 1 eviction.
-  - Set 32:
-    - A: 1 cache line.
-    - B: 12 cache lines.
-    - Total = 13 cache lines, causing 1 eviction.
-  - Total evictions = 1 × 2 sets = 2 evictions per block, minimal.
+// Two Approaches
+1. Casting to Integer:
+   - B_N = int(sqrt(max_elements * N/M)), B_M = int(sqrt(max_elements * M/N))
+   - Pros: Simple, near-max cache usage (e.g., 47.98MB for s=4)
+   - Cons: Uneven tiling (e.g., 2048/1773 ≈ 1.155), requires remainder handling
+
+2. Using Divisors:
+   - Snap B_N, B_M to largest divisors of N, M within limits
+   - Pros: Clean tiling (e.g., 2048/2048 = 1), better locality
+   - Cons: Slightly more computation
+
+// C++ Function (findBlockSize)
+Input: N (rows), M (cols), s (element size), cache_fraction (0.0 to 1.0)
+Output: std::pair<int, int> {B_N, B_M}
+- Uses divisors to ensure whole blocks
+- Example: N=2048, M=4096, s=4, full cache → B_N=2048, B_M=3072 (48MB)
+
+// Key Insights
+- 12-way Associativity: Matters if set conflicts exceed 12 lines/set, even if total fits
+- Divisors vs. Casting: Divisors optimize tiling; casting maximizes cache but complicates loops
+- Cache Fraction: Tune usage (e.g., 0.5 for 24MB)
+
+// Example Results
+- N=2048, M=4096, s=4:
+  - Divisors: B_N=2048, B_M=3072 (48MB, 12 lines/set)
+  - Casting: B_N=1773, B_M=3547 (~47.98MB, remainder)
+- N=2048, M=4096, s=8:
+  - Divisors: B_N=1024, B_M=3072 (48MB)
 
 
 ## Dependencies
